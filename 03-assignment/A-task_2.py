@@ -42,7 +42,7 @@ if __name__ == '__main__':
     input()
 
     # Variables that go into the loop
-    disease_prior = 0.001
+    disease_prior = 0.0001
     test_results_array = ['+++++', '-----', '+-+-+', '-+-+-', '++---', '--+++']
 
     # Dataframe for storage
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         num_tests = len(test_results) + 1
 
         # Do the test
-        probs = [disease_prior] + multiple_tests(test_results)
+        probs = [disease_prior] + multiple_tests(test_results, disease_prior=disease_prior)
 
         # Store the results
         test_results_ = [test_results] * num_tests

@@ -148,7 +148,7 @@ def main():
     point_5(4, 2)
     plt.figure()
     point_5(15, 5)
-    plt.figure()
+    plt.show()
 
 if __name__ == '__main__':
     main()
