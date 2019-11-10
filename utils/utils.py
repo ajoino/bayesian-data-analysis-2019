@@ -6,26 +6,73 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from .hdi import hdi
+import hashlib
+import os, contextlib
 
-def load_stan_model(model_path):
+def read_model_hash(model_path):
+    if not model_path.with_suffix('.md5').exists():
+        return None
+
+    with open(model_path.with_suffix('.md5'), 'rb') as hash_file:
+        saved_model_hash = hash_file.read()
+    return saved_model_hash
+
+def save_model_hash(model, model_path):
+    with open(model_path.with_suffix('.md5'), 'wb') as hash_file:
+        # Hash the model
+        model_hash = hashlib.md5(model.model_code.encode())
+        # Save the model hash
+        hash_file.write(model_hash.digest())
+
+def hash_from_model(model):
+    return hashlib.md5(model.model_code.encode()).digest()
+
+def hash_from_file(model_path):
+    with open(model_path) as model_file:
+        model_code = model_file.read()
+    return hashlib.md5(model_code.encode()).digest()
+
+def create_model(model_path):
+    # Load stan model as plaintext
+    with open(model_path) as model_file:
+        # Compile the model
+        model = pystan.StanModel(model_file)
+
+    save_model_hash(model, model_path)
+
+    with open(model_path.with_suffix('.pkl'), 'wb') as model_pickle:
+        # Then save the compiled model
+        pickle.dump(model, model_pickle)
+
+    return model
+
+def compare_hashes(model_path):
+    saved_model_hash = read_model_hash(model_path)
+    model_hash = hash_from_file(model_path)
+    print(saved_model_hash)
+    print(model_hash)
+    return saved_model_hash != model_hash
+
+def load_stan_model(model_path, force_compile=False):
     model_path = Path(model_path)
 
-    if model_path.with_suffix('.pkl').exists():
-        # See if model is saved, and use the saved one if that is the case
+    if not model_path.with_suffix('.pkl').exists():
+        return create_model(model_path)
+    else:
+        model_update = compare_hashes(model_path)
+        if model_update:
+            return create_model(model_path)
         with open(model_path.with_suffix('.pkl'), 'rb') as model_pickle:
             model = pickle.load(model_pickle)
         return model
-    else:
-        # If model is not saved, load it from the code
-        with open(model_path) as model_file:
-            model = pystan.StanModel(model_file)
-        # Then save the compiled model
-        with open(model_path.with_suffix('.pkl'), 'wb') as model_pickle:
-            pickle.dump(model, model_pickle)
-        return model
 
-def fit_stan_model(stan_model, data, iter=1000, seed=1):
-    fit = stan_model.sampling(data=data, iter=iter, chains=4, warmup=1000, thin=1, seed=seed, verbose=True)
+def fit_stan_model(stan_model, data, iter=1000, warmup=None, seed=1, verbose=False):
+    if warmup == None:
+        print('warmup = None')
+        warmup = iter // 10
+
+    fit = stan_model.sampling(data=data, iter=iter, chains=4, warmup=warmup, thin=1, seed=seed, verbose=False)
+
     summary_dict = fit.summary()
     summary_df = pd.DataFrame(
             summary_dict['summary'],
@@ -34,6 +81,34 @@ def fit_stan_model(stan_model, data, iter=1000, seed=1):
             )
 
     return fit, summary_df, stan_model
+
+def compare_distributions(x, y):
+    x.sort()
+    y.sort()
+
+    y_len = len(y)
+    for i, y_sample in reversed(list(enumerate(y))):
+        # If x is always larger than y, return 100%
+        if np.min(x) > np.max(y):
+            return 1.0, (np.min(x) + np.max(y)) / 2
+
+        y_proportion = i / y_len
+        x_proportion = np.mean(x >= y_sample)
+        if x_proportion >= y_proportion:
+            return (x_proportion + y_proportion) / 2, (x[y_len - i] + y_sample) / 2
+
+
+def roc_curve(x, y):
+    # Assuming x is negative and y is positive
+    len_x = len(x)
+    sorted_x = np.sort(x)
+
+    true_positive_rate, false_positive_rate = [None]*len(x), [None]*len(x)
+    for i, x_sample in enumerate(sorted_x):
+        true_positive_rate[i] = np.mean(y > x_sample)
+        false_positive_rate[i] = (len_x - i)/len_x
+
+    return true_positive_rate, false_positive_rate
 
 # Plot_trace function from Matthew West's article: 
 # https://towardsdatascience.com/an-introduction-to-bayesian-inference-in-pystan-c27078e58d53
@@ -105,3 +180,9 @@ def plot_posterior(param, param_name='parameter', ax=None,
     if plot_mean or plot_median or ci:
         ax.legend()
 
+def supress_stdout(func):
+    def wrapper(*a, **ka):
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stdout(devnull):
+                func(*a, **ka)
+    return wrapper
