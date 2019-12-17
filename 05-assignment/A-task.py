@@ -39,6 +39,8 @@ def point_1(data):
     sns.despine()
     plt.savefig('05-assignment/point_1.png')
 
+    pickle.dump(fit.extract('tau'), open('05-assignment/tau_posterior_for_assignment_6.pkl', 'wb'))
+
     return fit, summary, fit_model
 
 def point_2(fit, summary, fit_model):
@@ -66,6 +68,8 @@ def point_2(fit, summary, fit_model):
     sns.distplot(random_person_samples, bins=20, norm_hist=True)
     plt.plot(random_person_hdi, [0, 0], 'k', linewidth=5)
     plt.savefig('05-assignment/point_2.png')
+
+    pickle.dump(np.log(random_person_samples), open('05-assignment/random_person_samples.pkl', 'wb'))
 
 def point_3(fit, summary, fit_model, data):
     data_df = pd.DataFrame(data, columns=['reaction_times', 'users'])
