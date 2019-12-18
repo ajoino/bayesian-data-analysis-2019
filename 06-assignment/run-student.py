@@ -85,6 +85,7 @@ def point_1(fit, fit_summary):
     sns.despine(left=True)
     plt.xlabel('Difference in posterior log reaction times')
     plt.ylabel('Probability density')
+    plt.xlim(-0.1, 0.9)
     plt.savefig('06-assignment/student/posterior_log_reaction_difference.png')
 
     plt.figure()
@@ -94,6 +95,7 @@ def point_1(fit, fit_summary):
     sns.despine(left=True)
     plt.xlabel('Effect size')
     plt.ylabel('Probability density')
+    plt.xlim(-0.5, 9)
     plt.savefig('06-assignment/student/effect_size.png')
 
 def point_2(fit, fit_summary):
@@ -136,10 +138,11 @@ def point_4(fit, fit_summary):
         new_person_mu_2 = fit.extract('mu[2]')['mu[2]'][np.random.randint(num_posterior_samples)]
         new_person_tau = fit.extract('tau')['tau'][np.random.randint(num_posterior_samples)]
         new_person_sigma = fit.extract('sigma')['sigma'][np.random.randint(num_posterior_samples)]
+        new_person_nu = fit.extract('nu')['nu'][np.random.randint(num_posterior_samples)]
         is_child = np.random.binomial(1, 9/34, (1, ))
 
         new_person_theta = np.random.normal(new_person_mu_1 + new_person_mu_2 * is_child, new_person_tau)
-        sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        sample_log_reaction_time = stats.t.rvs(new_person_nu, new_person_theta, new_person_sigma, (1, ))
         #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_person_samples_bernoulli[i] = sample_log_reaction_time
 
@@ -151,9 +154,11 @@ def point_4(fit, fit_summary):
         new_person_mu_2 = fit.extract('mu[2]')['mu[2]'][np.random.randint(num_posterior_samples)]
         new_person_tau = fit.extract('tau')['tau'][np.random.randint(num_posterior_samples)]
         new_person_sigma = fit.extract('sigma')['sigma'][np.random.randint(num_posterior_samples)]
+        new_person_nu = fit.extract('nu')['nu'][np.random.randint(num_posterior_samples)]
 
         new_person_theta = np.random.normal(new_person_mu_1 + new_person_mu_2 * 9 / 34, new_person_tau)
-        sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        sample_log_reaction_time = stats.t.rvs(new_person_nu, new_person_theta, new_person_sigma, (1, ))
+        #sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
         #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_person_samples_average[i] = sample_log_reaction_time
 
@@ -164,9 +169,11 @@ def point_4(fit, fit_summary):
         new_person_mu_1 = fit.extract('mu[1]')['mu[1]'][np.random.randint(num_posterior_samples)]
         new_person_tau = fit.extract('tau')['tau'][np.random.randint(num_posterior_samples)]
         new_person_sigma = fit.extract('sigma')['sigma'][np.random.randint(num_posterior_samples)]
+        new_person_nu = fit.extract('nu')['nu'][np.random.randint(num_posterior_samples)]
 
         new_person_theta = np.random.normal(new_person_mu_1, new_person_tau)
-        sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        #sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        sample_log_reaction_time = stats.t.rvs(new_person_nu, new_person_theta, new_person_sigma, (1, ))
         #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_adult_samples[i] = sample_log_reaction_time
 
@@ -178,9 +185,11 @@ def point_4(fit, fit_summary):
         new_person_mu_2 = fit.extract('mu[2]')['mu[2]'][np.random.randint(num_posterior_samples)]
         new_person_tau = fit.extract('tau')['tau'][np.random.randint(num_posterior_samples)]
         new_person_sigma = fit.extract('sigma')['sigma'][np.random.randint(num_posterior_samples)]
+        new_person_nu = fit.extract('nu')['nu'][np.random.randint(num_posterior_samples)]
 
         new_person_theta = np.random.normal(new_person_mu_1 + new_person_mu_2, new_person_tau)
-        sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        #sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
+        sample_log_reaction_time = stats.t.rvs(new_person_nu, new_person_theta, new_person_sigma, (1, ))
         #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_child_samples[i] = sample_log_reaction_time
 

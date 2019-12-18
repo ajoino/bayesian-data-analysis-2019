@@ -54,9 +54,10 @@ def point_1(fit, fit_summary):
 
     child_correction_effect_size = child_posterior_correction / np.std(child_posterior_correction)
 
-    print(f'Adult HDI: {adult_hdi}')
-    print(f'Child HDI: {child_hdi}')
-    print(f'Difference HDI: {diff_hdi}')
+    print(f'Adult mean: {adult_mean:.2f}, HDI: {adult_hdi}')
+    print(f'Child mean: {child_mean:.2f}, HDI: {child_hdi}')
+    print(f'Difference mean: {diff_mean:.2f}, HDI: {diff_hdi}')
+    print(f'Effect mean: {np.mean(child_correction_effect_size):.2f}, HDI: {hdi(child_correction_effect_size)}')
 
     plt.figure()
     sns.distplot(adult_posterior_mu, bins=20, norm_hist=True, label='Adult log posterior μ')
@@ -85,6 +86,7 @@ def point_1(fit, fit_summary):
     sns.despine(left=True)
     plt.xlabel('Difference in posterior log reaction times')
     plt.ylabel('Probability density')
+    plt.xlim(-0.1, 0.9)
     plt.savefig('06-assignment/normal/posterior_log_reaction_difference.png')
 
     plt.figure()
@@ -94,6 +96,7 @@ def point_1(fit, fit_summary):
     sns.despine(left=True)
     plt.xlabel('Effect size')
     plt.ylabel('Probability density')
+    plt.xlim(-0.5, 9)
     plt.savefig('06-assignment/normal/effect_size.png')
 
 def point_2(fit, fit_summary):
@@ -108,6 +111,10 @@ def point_2(fit, fit_summary):
     tau_diff = posterior_tau_task_6 - posterior_tau_task_5
     diff_mean = np.mean(tau_diff)
     diff_hdi = hdi(tau_diff)
+    diff_effect = tau_diff / np.std(tau_diff)
+
+    print(f'τ difference mean: {diff_mean:.2f}, HDI: {diff_hdi}')
+    print(f'Effect on τ mean: {np.mean(diff_effect):.2f}, HDI: {hdi(diff_effect)}')
 
     plt.figure()
     plot_dist_mean_hdi(posterior_tau_task_6, color='b', label='Task 6')
@@ -119,8 +126,28 @@ def point_2(fit, fit_summary):
     plt.ylabel('Probability density')
     plt.savefig('06-assignment/normal/posterior_tau_comparison.png')
 
-def point_3():
-    print('Instructions unclear')
+def point_3(fit, fit_summary):
+    #adult_mean = fit_summary
+    adult_mean = fit_summary.loc['mu[1]', 'mean']
+    child_mean = fit_summary.loc['mu[1]', 'mean'] + fit_summary.loc['mu[2]', 'mean']
+    single_mean_task_5 = 5.76
+    standard_deviation_task_5 = 0.28
+    standard_deviation = fit_summary.loc['tau', 'mean']
+    log_reaction_time = np.linspace(4.5, 7, 1001)
+
+    adult_pdf = stats.norm.pdf(log_reaction_time, adult_mean, standard_deviation)
+    child_pdf = stats.norm.pdf(log_reaction_time, child_mean, standard_deviation)
+    task_5_pdf = stats.norm.pdf(log_reaction_time, single_mean_task_5, standard_deviation_task_5)
+
+    plt.figure()
+    sns.lineplot(log_reaction_time, adult_pdf, label='Adult')
+    sns.lineplot(log_reaction_time, child_pdf, label='Child')
+    sns.lineplot(log_reaction_time, task_5_pdf, label='Task 5')
+
+    plt.ylabel('Probability density')
+    plt.xlabel('Log reaction time')
+    sns.despine(left=True)
+    plt.savefig('06-assignment/normal/prior_pdfs.png')
 
 def point_4(fit, fit_summary):
     num_posterior_samples = (fit.sim['iter'] - fit.sim['warmup']) * fit.sim['chains']
@@ -140,7 +167,6 @@ def point_4(fit, fit_summary):
 
         new_person_theta = np.random.normal(new_person_mu_1 + new_person_mu_2 * is_child, new_person_tau)
         sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
-        #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_person_samples_bernoulli[i] = sample_log_reaction_time
 
     # 10000 random people samples (uninformed with average)
@@ -154,7 +180,6 @@ def point_4(fit, fit_summary):
 
         new_person_theta = np.random.normal(new_person_mu_1 + new_person_mu_2 * 9 / 34, new_person_tau)
         sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
-        #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_person_samples_average[i] = sample_log_reaction_time
 
     # 10000 random adults
@@ -167,7 +192,6 @@ def point_4(fit, fit_summary):
 
         new_person_theta = np.random.normal(new_person_mu_1, new_person_tau)
         sample_log_reaction_time = np.random.normal(new_person_theta, new_person_sigma, (1, ))
-        #sample_reaction_times = np.exp(sample_log_reaction_times)
         random_adult_samples[i] = sample_log_reaction_time
 
     # 10000 random children
@@ -206,6 +230,17 @@ def point_4(fit, fit_summary):
     plt.ylabel('Probability density')
     plt.savefig('06-assignment/normal/posterior_predictive_check.png')
 
+    plt.figure()
+    sns.distplot(np.exp(uninformed_random_people_samples), bins=20, norm_hist=True, label='Uninformed random person')
+    sns.distplot(np.exp(random_adult_samples), bins=20, norm_hist=True, label='Adult random person')
+    sns.distplot(np.exp(random_child_samples), bins=20, norm_hist=True, label='Child random person')
+
+    plt.legend()
+    sns.despine(left=True)
+    plt.xlabel('Reaction time (ms)')
+    plt.ylabel('Probability density')
+    plt.savefig('06-assignment/normal/posterior_predictive_check_ms.png')
+
 def main():
     with open('06-assignment/data.json') as json_file:
         data = json.load(json_file)
@@ -221,7 +256,7 @@ def main():
 
     point_1(fit, fit_summary)
     point_2(fit, fit_summary)
-    point_3()
+    point_3(fit, fit_summary)
     point_4(fit, fit_summary)
 if __name__ == '__main__':
     main()
